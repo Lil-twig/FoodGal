@@ -1,10 +1,13 @@
 package com.example.foodgal.ui.pos
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.ListenerRegistration
+import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.update
 
 class ProductViewModel : ViewModel() {
 
@@ -14,16 +17,29 @@ class ProductViewModel : ViewModel() {
     private val _selectedCategory = MutableStateFlow("Semua")
     val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
 
+    private val db = Firebase.firestore
+
+    // Store the listener so we can clean it up later
+    private var snapshotListener: ListenerRegistration? = null
+
     init {
-        // Dummy Data
-        _products.value = listOf(
-            Product(1, "Es Teh Manis", 5000.0, "Minuman"),
-            Product(2, "Kopi Susu", 10000.0, "Minuman"),
-            Product(3, "Nasi Goreng", 20000.0, "Makanan"),
-            Product(4, "Ayam Bakar", 25000.0, "Makanan"),
-            Product(5, "Kentang Goreng", 12000.0, "Snack"),
-            Product(6, "Cireng", 8000.0, "Snack")
-        )
+        getProducts()
+    }
+
+    private fun getProducts() {
+
+        val docref = db.collection("products")
+        docref.get().addOnSuccessListener { result ->
+            val productList = mutableListOf<Product>()
+            for (document in result) {
+                val product = document.toObject(Product::class.java)
+                productList.add(product)
+            }
+            _products.value = productList
+        }
+
+
+
     }
 
     fun selectCategory(category: String) {
@@ -31,17 +47,37 @@ class ProductViewModel : ViewModel() {
     }
 
     fun addProduct(name: String, price: Double, category: String) {
+        val docRef = db.collection("products").document()
         val newProduct = Product(
-            id = (_products.value.maxOfOrNull { it.id } ?: 0) + 1,
+            id = docRef.id,
             name = name,
             price = price,
             category = category
         )
-        _products.update { it + newProduct }
+
+        // 3. REMOVED local state update.
+        // We let Firestore's snapshot listener be the "Single Source of Truth".
+        // When we add it to Firestore, the listener automatically fetches the new list.
+        docRef.set(newProduct)
+            .addOnSuccessListener {
+                Log.d("ProductViewModel", "Product added: $name")
+            }
+            .addOnFailureListener { e ->
+                Log.e("ProductViewModel", "Error adding document", e)
+            }
     }
 
-    fun deleteProduct(productId: Int) {
-        _products.update { it.filterNot { product -> product.id == productId } }
+    fun deleteProduct(productId: String) {
+        // 4. Actually delete the item from Firestore!
+        // Again, no local update needed. Firestore will tell the listener the item is gone.
+        db.collection("products").document(productId)
+            .delete()
+            .addOnSuccessListener {
+                Log.d("ProductViewModel", "Product deleted: $productId")
+            }
+            .addOnFailureListener { e ->
+                Log.e("ProductViewModel", "Error deleting document", e)
+            }
     }
 
     fun getFilteredProducts(): List<Product> {
@@ -51,5 +87,11 @@ class ProductViewModel : ViewModel() {
         } else {
             _products.value.filter { it.category == category }
         }
+    }
+
+    // 5. Prevent memory leaks!
+    override fun onCleared() {
+        super.onCleared()
+        snapshotListener?.remove()
     }
 }

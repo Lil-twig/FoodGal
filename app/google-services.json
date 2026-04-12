@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "447512558728",
+    "project_id": "foodgal-d1a11",
+    "storage_bucket": "foodgal-d1a11.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:447512558728:android:3390fed4482de69554f33d",
+        "android_client_info": {
+          "package_name": "com.example.foodgal"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDUrpGKlgxDJJjAxD7RtDj1QknGhPtxMTE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:447512558728:android:dbc4a09c6b10e1ce54f33d",
+        "android_client_info": {
+          "package_name": "com.example.foodgal.ui.pos"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDUrpGKlgxDJJjAxD7RtDj1QknGhPtxMTE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

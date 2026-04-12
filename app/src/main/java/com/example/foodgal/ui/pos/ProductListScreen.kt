@@ -66,7 +66,7 @@ fun ProductListScreen(
 ) {
     val categories = listOf("Semua", "Minuman", "Makanan", "Snack")
     val selectedCategory by viewModel.selectedCategory.collectAsState()
-    val products = viewModel.getFilteredProducts()
+    val products by  viewModel.products.collectAsState()
     
     var showAddDialog by remember { mutableStateOf(false) }
 
@@ -240,7 +240,8 @@ fun AddProductDialog(
                         onClick = onDismiss,
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B0000)), // Dark Red
                         shape = RoundedCornerShape(8.dp),
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier.
+                        weight(1f)
                     ) {
                         Text("Cancel", color = Color.White)
                     }
