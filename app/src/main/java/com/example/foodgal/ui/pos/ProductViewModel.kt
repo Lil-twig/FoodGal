@@ -2,6 +2,7 @@ package com.example.foodgal.ui.pos
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import com.example.foodgal.data.ProductRepository
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.firestore
@@ -17,7 +18,11 @@ class ProductViewModel : ViewModel() {
     private val _selectedCategory = MutableStateFlow("Semua")
     val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
 
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
     private val db = Firebase.firestore
+    private val repository = ProductRepository()
 
     // Store the listener so we can clean it up later
     private var snapshotListener: ListenerRegistration? = null
@@ -27,19 +32,17 @@ class ProductViewModel : ViewModel() {
     }
 
     private fun getProducts() {
-
-        val docref = db.collection("products")
-        docref.get().addOnSuccessListener { result ->
-            val productList = mutableListOf<Product>()
-            for (document in result) {
-                val product = document.toObject(Product::class.java)
-                productList.add(product)
+        _isLoading.value = true
+        repository.fetchProducts(
+            onSuccess = { productList ->
+                _products.value = productList
+                _isLoading.value = false
+            },
+            onFailure = { e ->
+                Log.e("ProductViewModel", "Error fetching products", e)
+                _isLoading.value = false
             }
-            _products.value = productList
-        }
-
-
-
+        )
     }
 
     fun selectCategory(category: String) {
@@ -47,6 +50,7 @@ class ProductViewModel : ViewModel() {
     }
 
     fun addProduct(name: String, price: Double, category: String) {
+        _isLoading.value = true
         val docRef = db.collection("products").document()
         val newProduct = Product(
             id = docRef.id,
@@ -55,28 +59,28 @@ class ProductViewModel : ViewModel() {
             category = category
         )
 
-        // 3. REMOVED local state update.
-        // We let Firestore's snapshot listener be the "Single Source of Truth".
-        // When we add it to Firestore, the listener automatically fetches the new list.
         docRef.set(newProduct)
             .addOnSuccessListener {
                 Log.d("ProductViewModel", "Product added: $name")
+                getProducts()
             }
             .addOnFailureListener { e ->
                 Log.e("ProductViewModel", "Error adding document", e)
+                _isLoading.value = false
             }
     }
 
     fun deleteProduct(productId: String) {
-        // 4. Actually delete the item from Firestore!
-        // Again, no local update needed. Firestore will tell the listener the item is gone.
+        _isLoading.value = true
         db.collection("products").document(productId)
             .delete()
             .addOnSuccessListener {
                 Log.d("ProductViewModel", "Product deleted: $productId")
+                getProducts()
             }
             .addOnFailureListener { e ->
                 Log.e("ProductViewModel", "Error deleting document", e)
+                _isLoading.value = false
             }
     }
 

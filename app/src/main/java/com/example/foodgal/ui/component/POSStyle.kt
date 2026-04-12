@@ -19,6 +19,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.example.foodgal.R
 import java.text.NumberFormat
@@ -29,13 +30,18 @@ fun ProductCard(
     modifier: Modifier = Modifier,
     image: Int = R.drawable.wooper,
     name: String = "Burger",
-    price: Int = 25000
+    price: Int = 25000,
+    isSelected: Boolean = false,
+    onClick: () -> Unit = {}
 ) {
 
     Card(
-        onClick = { },
+        onClick = onClick,
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(6.dp),
+        elevation = CardDefaults.cardElevation(if (isSelected) 12.dp else 6.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+        ),
         modifier = modifier.padding(6.dp)
     ) {
 
@@ -63,23 +69,35 @@ fun ProductCard(
                     .align(Alignment.CenterHorizontally),
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.ExtraBold
-                )
-
+                ),
+                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Unspecified
             )
 
             Text(
-                text = "Rp${price}",
+                text = formatToRupiah(price),
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 4.dp),
+                textAlign = TextAlign.Center,
+                color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Unspecified
             )
+            
+            if (isSelected) {
+                Text(
+                    text = "Selected",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
         }
     }
 }
 
-fun formatPrice(price: Int): String {
+fun formatToRupiah(price: Int): String {
     val format = NumberFormat.getCurrencyInstance(Locale("in", "ID"))
-    return format.format(price)
+    return format.format(price).replace(",00", "").replace("Rp", "Rp ")
 }
 
 @Composable
@@ -94,7 +112,7 @@ fun CartBottomBar(
             .padding(12.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFB84A4A)
+            containerColor = if (itemCount > 0) Color(0xFFB84A4A) else Color.Gray
         ),
         elevation = CardDefaults.cardElevation(8.dp)
     ) {
@@ -107,14 +125,22 @@ fun CartBottomBar(
             verticalAlignment = Alignment.CenterVertically
         ) {
 
-            Text(
-                text = "🛒 $itemCount Items",
-                color = Color.White
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = if (itemCount > 0) "🛒" else "🧺",
+                    modifier = Modifier.padding(end = 8.dp)
+                )
+                Text(
+                    text = "$itemCount Items",
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
             Text(
-                text = "Rp$totalPrice",
-                color = Color.White
+                text = formatToRupiah(totalPrice),
+                color = Color.White,
+                fontWeight = FontWeight.Bold
             )
         }
     }
