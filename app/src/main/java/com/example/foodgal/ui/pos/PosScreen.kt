@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -54,6 +55,7 @@ fun PosScreen(
 ) {
     val products by viewModel.products.collectAsState()
     val selectedCategory by viewModel.selectedCategory.collectAsState()
+    val searchQuery by viewModel.searchQuery.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     
     // CART STATES FROM VIEWMODEL
@@ -113,18 +115,28 @@ fun PosScreen(
                             isSelected = selectedCategory == "Snack",
                             onClick = { viewModel.selectCategory("Snack") }
                         )
+                        CategoryCard(
+                            modifier = Modifier.weight(1f),
+                            image = R.drawable.all_logo,
+                            name = "All",
+                            isSelected = selectedCategory == "All",
+                            onClick = { viewModel.selectCategory("All") }
+                        )
+
                     }
                 }
 
                 // SEARCH
                 item(span = { GridItemSpan(2) }) {
                     OutlinedTextField(
-                        value = "",
-                        onValueChange = {},
+                        value = searchQuery,
+                        onValueChange = { viewModel.onSearchQueryChange(it) },
                         modifier = Modifier
                             .padding(horizontal = 16.dp)
                             .fillMaxWidth(),
-                        label = { Text("Search") }
+                        label = { Text("Search product") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                        singleLine = true
                     )
                 }
 
@@ -172,7 +184,7 @@ fun PosScreen(
 @Composable
 fun Topbar(onMenuClick: () -> Unit) {
     TopAppBar(
-        title = { Text(text = "FoodGal POS") },
+        title = { Text(text = "FoodGal") },
         navigationIcon = {
             IconButton(onClick = onMenuClick) {
                 Icon(
@@ -202,7 +214,8 @@ fun CategoryCard(
             shape = RoundedCornerShape(8.dp),
             elevation = CardDefaults.cardElevation(if (isSelected) 8.dp else 2.dp),
             colors = CardDefaults.cardColors(
-                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
+                containerColor = if (isSelected) MaterialTheme.colorScheme
+                    .primaryContainer else MaterialTheme.colorScheme.surface
             )
         ) {
             Image(

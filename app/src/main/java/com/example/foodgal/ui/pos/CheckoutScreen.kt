@@ -37,7 +37,7 @@ fun CheckoutScreen(
     viewModel: PosViewModel
 ) {
     val cartItems by viewModel.cartItems.collectAsState()
-    val products by viewModel.products.collectAsState()
+    val products by viewModel.allProducts.collectAsState()
     val totalPrice by viewModel.totalPrice.collectAsState()
 
     // Map cart items to actual product objects and their quantities

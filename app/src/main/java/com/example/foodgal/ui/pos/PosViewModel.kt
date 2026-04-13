@@ -15,29 +15,20 @@ class PosViewModel : ViewModel() {
     private val _selectedCategory = MutableStateFlow("All")
     val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
 
+    private val _searchQuery = MutableStateFlow("")
+    val searchQuery: StateFlow<String> = _searchQuery.asStateFlow()
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _filteredProducts = MutableStateFlow<List<Product>>(emptyList())
     val products: StateFlow<List<Product>> = _filteredProducts.asStateFlow()
+    val allProducts: StateFlow<List<Product>> = _allProducts.asStateFlow()
 
     // CART STATE
     private val _cartItems = MutableStateFlow<Map<String, Int>>(emptyMap()) // productId to quantity
     val cartItems: StateFlow<Map<String, Int>> = _cartItems.asStateFlow()
 
-    val cartItemCount: StateFlow<Int> = _cartItems.map { it.values.sum() }.let { 
-        val flow = MutableStateFlow(0)
-        // Note: Simple mapping for state
-        it
-    }.let { 
-        // Real implementation using stateIn would be better, but we'll use a derived flow
-        _cartItems.map { it.values.sum() }
-    }.let { flow ->
-        val result = MutableStateFlow(0)
-        // This is a bit hacky without viewModelScope, let's just use manual updates for now to be safe
-        MutableStateFlow(0) 
-    }
-    
     // Let's use simpler state for cart summary
     private val _totalItems = MutableStateFlow(0)
     val totalItems: StateFlow<Int> = _totalItems.asStateFlow()
@@ -68,14 +59,22 @@ class PosViewModel : ViewModel() {
         updateFilteredList()
     }
 
+    fun onSearchQueryChange(query: String) {
+        _searchQuery.value = query
+        updateFilteredList()
+    }
+
     private fun updateFilteredList() {
         val currentCategory = _selectedCategory.value
-        if (currentCategory == "All") {
-            _filteredProducts.value = _allProducts.value
-            return
-        }
-        _filteredProducts.value = _allProducts.value.filter { 
-            it.category.equals(currentCategory, ignoreCase = true) 
+        val currentQuery = _searchQuery.value.lowercase()
+
+        _filteredProducts.value = _allProducts.value.filter { product ->
+            val matchesCategory = if (currentCategory == "All") true 
+                                  else product.category.equals(currentCategory, ignoreCase = true)
+            val matchesSearch = if (currentQuery.isEmpty()) true 
+                                else product.name.lowercase().contains(currentQuery)
+            
+            matchesCategory && matchesSearch
         }
     }
 
