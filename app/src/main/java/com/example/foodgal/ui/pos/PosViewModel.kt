@@ -1,11 +1,13 @@
 package com.example.foodgal.ui.pos
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.foodgal.data.ProductRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
 class PosViewModel : ViewModel() {
     private val repository = ProductRepository()
@@ -42,16 +44,18 @@ class PosViewModel : ViewModel() {
 
     fun fetchProducts() {
         _isLoading.value = true
-        repository.fetchProducts(
-            onSuccess = { products ->
+        viewModelScope.launch {
+
+            repository.getProductsFlow().collect { products ->
                 _allProducts.value = products
                 updateFilteredList()
                 _isLoading.value = false
-            },
-            onFailure = {
-                _isLoading.value = false
+
             }
-        )
+        }
+
+
+
     }
 
     fun selectCategory(category: String) {
