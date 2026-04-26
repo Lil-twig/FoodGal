@@ -1,5 +1,7 @@
 package com.example.foodgal.ui.pos
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.foodgal.data.ProductRepository
@@ -93,6 +95,7 @@ class PosViewModel : ViewModel() {
         _totalPrice.value += product.price.toInt()
     }
     
+    @RequiresApi(Build.VERSION_CODES.N)
     fun removeFromCart(product: Product) {
         val currentCart = _cartItems.value.toMutableMap()
         val count = currentCart.getOrDefault(product.id, 0)
@@ -106,6 +109,12 @@ class PosViewModel : ViewModel() {
             _totalItems.value = currentCart.values.sum()
             _totalPrice.value -= product.price.toInt()
         }
+    }
+
+    fun clearCart() {
+        _cartItems.value = emptyMap()
+        _totalItems.value = 0
+        _totalPrice.value = 0
     }
     
     fun isProductInCart(productId: String): Boolean {

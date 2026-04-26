@@ -16,6 +16,8 @@ import com.example.foodgal.ui.pos.CheckoutScreen
 import com.example.foodgal.ui.pos.PosScreen
 import com.example.foodgal.ui.pos.PosViewModel
 import com.example.foodgal.ui.pos.ProductListScreen
+import com.example.foodgal.ui.pos.ReceiptScreen
+import com.example.foodgal.ui.pos.SuccessScreen
 import kotlinx.coroutines.launch
 
 sealed class Screen(val route: String, val title: String) {
@@ -24,6 +26,8 @@ sealed class Screen(val route: String, val title: String) {
     object Profile : Screen("profile", "Profile")
     object Settings : Screen("settings", "Settings")
     object Checkout : Screen("checkout", "Checkout")
+    object Success : Screen("success", "Success")
+    object Receipt : Screen("receipt", "Receipt")
 }
 
 @Composable
@@ -84,7 +88,30 @@ fun NavGraph() {
             composable(Screen.Checkout.route) {
                 CheckoutScreen(
                     onBackClick = { navController.popBackStack() },
-                    viewModel = posViewModel
+                    viewModel = posViewModel,
+                    onComplete = {
+                        navController.navigate(Screen.Success.route)
+                    }
+                )
+            }
+            composable(Screen.Success.route) {
+                SuccessScreen(
+                    onComplete = {
+                        navController.navigate(Screen.Receipt.route) {
+                            popUpTo(Screen.Checkout.route) { inclusive = true }
+                        }
+                    }
+                )
+            }
+            composable(Screen.Receipt.route) {
+                ReceiptScreen(
+                    viewModel = posViewModel,
+                    onDoneClick = {
+                        posViewModel.clearCart()
+                        navController.navigate(Screen.POS.route) {
+                            popUpTo(Screen.POS.route) { inclusive = true }
+                        }
+                    }
                 )
             }
             composable(Screen.Profile.route) { }
