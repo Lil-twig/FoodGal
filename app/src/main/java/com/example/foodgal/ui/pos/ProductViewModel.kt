@@ -2,13 +2,17 @@ package com.example.foodgal.ui.pos
 
 import android.util.Log
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.foodgal.data.ProductRepository
 import com.google.firebase.Firebase
-import com.google.firebase.firestore.ListenerRegistration
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 
 class ProductViewModel : ViewModel() {
 
@@ -24,8 +28,18 @@ class ProductViewModel : ViewModel() {
     private val db = Firebase.firestore
     private val repository = ProductRepository()
 
-    // Store the listener so we can clean it up later
-    private var snapshotListener: ListenerRegistration? = null
+    // Logika Filter: Menggabungkan list produk dan kategori yang dipilih
+    val filteredProducts: StateFlow<List<Product>> = combine(_products, _selectedCategory) { products, category ->
+        if (category == "Semua") {
+            products
+        } else {
+            products.filter { it.category.equals(category, ignoreCase = true) }
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
 
     init {
         getProducts()
@@ -33,16 +47,12 @@ class ProductViewModel : ViewModel() {
 
     private fun getProducts() {
         _isLoading.value = true
-        repository.fetchProducts(
-            onSuccess = { productList ->
+        viewModelScope.launch {
+            repository.getProductsFlow().collect { productList ->
                 _products.value = productList
                 _isLoading.value = false
-            },
-            onFailure = { e ->
-                Log.e("ProductViewModel", "Error fetching products", e)
-                _isLoading.value = false
             }
-        )
+        }
     }
 
     fun selectCategory(category: String) {
@@ -62,7 +72,8 @@ class ProductViewModel : ViewModel() {
         docRef.set(newProduct)
             .addOnSuccessListener {
                 Log.d("ProductViewModel", "Product added: $name")
-                getProducts()
+                // getProducts() tidak perlu dipanggil manual karena sudah ada SnapshotListener
+                _isLoading.value = false
             }
             .addOnFailureListener { e ->
                 Log.e("ProductViewModel", "Error adding document", e)
@@ -76,7 +87,8 @@ class ProductViewModel : ViewModel() {
             .delete()
             .addOnSuccessListener {
                 Log.d("ProductViewModel", "Product deleted: $productId")
-                getProducts()
+                // getProducts() tidak perlu dipanggil manual karena sudah ada SnapshotListener
+                _isLoading.value = false
             }
             .addOnFailureListener { e ->
                 Log.e("ProductViewModel", "Error deleting document", e)
@@ -84,18 +96,7 @@ class ProductViewModel : ViewModel() {
             }
     }
 
-    fun getFilteredProducts(): List<Product> {
-        val category = _selectedCategory.value
-        return if (category == "Semua") {
-            _products.value
-        } else {
-            _products.value.filter { it.category == category }
-        }
-    }
-
-    // 5. Prevent memory leaks!
     override fun onCleared() {
         super.onCleared()
-        snapshotListener?.remove()
     }
 }

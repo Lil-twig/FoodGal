@@ -7,9 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.foodgal"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.example.foodgal"
@@ -60,12 +58,11 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.1")
 
-
-    val nav_version = "2.9.7"
-
+    val nav_version = "2.8.5"
     implementation("androidx.navigation:navigation-compose:$nav_version")
 
+    // Firebase
     implementation(platform("com.google.firebase:firebase-bom:34.11.0"))
-//    implementation("com.google.firebase:firebase-analytics")
     implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.firebase:firebase-auth") // Tambahkan ini
 }
