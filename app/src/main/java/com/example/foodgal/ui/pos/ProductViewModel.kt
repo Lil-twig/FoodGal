@@ -25,6 +25,9 @@ class ProductViewModel : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
+    private val _categories = MutableStateFlow(listOf("Semua", "Minuman", "Makanan", "Snack"))
+    val categories: StateFlow<List<String>> = _categories.asStateFlow()
+
     private val db = Firebase.firestore
     private val repository = ProductRepository()
 

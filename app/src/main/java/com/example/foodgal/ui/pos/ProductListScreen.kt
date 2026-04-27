@@ -19,7 +19,6 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -71,10 +70,11 @@ fun ProductListScreen(
     viewModel: ProductViewModel = viewModel(),
     onMenuClick: () -> Unit = {}
 ) {
-    val categories = listOf("Semua", "Minuman", "Makanan", "Snack")
     val selectedCategory by viewModel.selectedCategory.collectAsState()
-    val products by viewModel.products.collectAsState()
+    // Menggunakan filteredProducts agar sorting berfungsi
+    val products by viewModel.filteredProducts.collectAsState() 
     val isLoading by viewModel.isLoading.collectAsState()
+    val categories by viewModel.categories.collectAsState()
     
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -108,6 +108,7 @@ fun ProductListScreen(
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
+                // Implementasi Kategori Satu per Satu
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -115,11 +116,32 @@ fun ProductListScreen(
                     contentPadding = PaddingValues(horizontal = 16.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(categories) { category ->
+                    item {
                         FilterChip(
-                            selected = selectedCategory == category,
-                            onClick = { viewModel.selectCategory(category) },
-                            label = { Text(category) }
+                            selected = selectedCategory == "Semua",
+                            onClick = { viewModel.selectCategory("Semua") },
+                            label = { Text("Semua") }
+                        )
+                    }
+                    item {
+                        FilterChip(
+                            selected = selectedCategory == "Makanan",
+                            onClick = { viewModel.selectCategory("Makanan") },
+                            label = { Text("Makanan") }
+                        )
+                    }
+                    item {
+                        FilterChip(
+                            selected = selectedCategory == "Minuman",
+                            onClick = { viewModel.selectCategory("Minuman") },
+                            label = { Text("Minuman") }
+                        )
+                    }
+                    item {
+                        FilterChip(
+                            selected = selectedCategory == "Snack",
+                            onClick = { viewModel.selectCategory("Snack") },
+                            label = { Text("Snack") }
                         )
                     }
                 }
@@ -154,7 +176,8 @@ fun ProductListScreen(
                         scope.launch {
                             snackbarHostState.showSnackbar("Menu baru di Tambah")
                         }
-                    }
+                    },
+                    categories = categories.filter { it != "Semua" } // Jangan tampilkan "Semua" di dialog tambah
                 )
             }
         }
@@ -190,13 +213,13 @@ fun ProductListScreen(
 @Composable
 fun AddProductDialog(
     onDismiss: () -> Unit,
-    onSave: (String, Double, String) -> Unit
+    onSave: (String, Double, String) -> Unit,
+    categories: List<String>
 ) {
     var name by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("Makanan") }
+    var category by remember { mutableStateOf(categories.firstOrNull() ?: "") }
     var expanded by remember { mutableStateOf(false) }
-    val categories = listOf("Makanan", "Minuman", "Snack")
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(

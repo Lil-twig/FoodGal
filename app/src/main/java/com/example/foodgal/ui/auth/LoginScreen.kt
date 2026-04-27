@@ -1,5 +1,6 @@
 package com.example.foodgal.ui.auth
 
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -7,6 +8,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -24,6 +26,7 @@ fun LoginScreen(
     
     val isLoading by viewModel.isLoading.collectAsState()
     val error by viewModel.error.collectAsState()
+    val context = LocalContext.current
 
     Column(
         modifier = Modifier
@@ -71,9 +74,15 @@ fun LoginScreen(
         Button(
             onClick = { 
                 if (isSignUpMode) {
-                    viewModel.signUp(email, password, onLoginSuccess)
+                    viewModel.signUp(email, password) {
+                        Toast.makeText(context, "akun anda terdaftar", Toast.LENGTH_SHORT).show()
+                        onLoginSuccess()
+                    }
                 } else {
-                    viewModel.signIn(email, password, onLoginSuccess)
+                    viewModel.signIn(email, password) {
+                        Toast.makeText(context, "akun sudah masuk", Toast.LENGTH_SHORT).show()
+                        onLoginSuccess()
+                    }
                 }
             },
             modifier = Modifier.fillMaxWidth(),
