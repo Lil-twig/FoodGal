@@ -3,31 +3,28 @@ package com.example.foodgal.ui.navigation
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.example.foodgal.models.Transaction
 import com.example.foodgal.ui.auth.AuthViewModel
 import com.example.foodgal.ui.auth.LoginScreen
 import com.example.foodgal.ui.auth.ProfileScreen
 import com.example.foodgal.ui.component.AppSidebar
-import com.example.foodgal.ui.pos.CheckoutScreen
-import com.example.foodgal.ui.pos.PosScreen
-import com.example.foodgal.ui.pos.PosViewModel
-import com.example.foodgal.ui.pos.ProductListScreen
-import com.example.foodgal.ui.pos.ReceiptScreen
-import com.example.foodgal.ui.pos.SuccessScreen
+import com.example.foodgal.ui.pos.*
 import kotlinx.coroutines.launch
 
 sealed class Screen(val route: String, val title: String) {
     object Login : Screen("login", "Login")
     object POS : Screen("pos", "POS")
     object ProductList : Screen("product_list", "Daftar Product")
+    object History : Screen("history", "History Transaction")
+    object TransactionDetail : Screen("transaction_detail", "Transaction Detail")
+    object Summary : Screen("summary", "Summary")
     object Profile : Screen("profile", "Profile")
     object Settings : Screen("settings", "Settings")
     object Checkout : Screen("checkout", "Checkout")
@@ -45,10 +42,17 @@ fun NavGraph() {
     
     val authViewModel: AuthViewModel = viewModel()
     val posViewModel: PosViewModel = viewModel()
+    val historyViewModel: HistoryViewModel = viewModel()
+    val summaryViewModel: SummaryViewModel = viewModel()
     val currentUser by authViewModel.currentUser.collectAsState()
 
+    var selectedTransaction by remember { mutableStateOf<Transaction?>(null) }
+
+    // Urutan harus SAMA dengan AppSidebar.kt
     val navigationItems = listOf(
         Screen.POS,
+        Screen.History,
+        Screen.Summary,
         Screen.ProductList,
         Screen.Profile,
         Screen.Settings
@@ -76,7 +80,7 @@ fun NavGraph() {
                 }
             )
         },
-        gesturesEnabled = currentRoute != Screen.Login.route
+        gesturesEnabled = currentRoute != Screen.Login.route && currentRoute != Screen.Success.route
     ) {
         NavHost(
             navController = navController,
@@ -101,6 +105,30 @@ fun NavGraph() {
             }
             composable(Screen.ProductList.route) {
                 ProductListScreen(onMenuClick = { scope.launch { drawerState.open() } })
+            }
+            composable(Screen.History.route) {
+                HistoryScreen(
+                    onMenuClick = { scope.launch { drawerState.open() } },
+                    onTransactionClick = { transaction ->
+                        selectedTransaction = transaction
+                        navController.navigate(Screen.TransactionDetail.route)
+                    },
+                    viewModel = historyViewModel
+                )
+            }
+            composable(Screen.TransactionDetail.route) {
+                selectedTransaction?.let { transaction ->
+                    TransactionDetailScreen(
+                        transaction = transaction,
+                        onBackClick = { navController.popBackStack() }
+                    )
+                }
+            }
+            composable(Screen.Summary.route) {
+                SummaryScreen(
+                    onMenuClick = { scope.launch { drawerState.open() } },
+                    viewModel = summaryViewModel
+                )
             }
             composable(Screen.Profile.route) {
                 ProfileScreen(

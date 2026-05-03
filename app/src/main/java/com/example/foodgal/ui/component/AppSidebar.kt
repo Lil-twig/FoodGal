@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
@@ -35,6 +37,16 @@ fun AppSidebar(
             title = "POS",
             selectedIcon = Icons.Filled.Home,
             unselectedIcon = Icons.Filled.Home,
+        ),
+        NavigationItem(
+            title = "History Transaction",
+            selectedIcon = Icons.Filled.DateRange,
+            unselectedIcon = Icons.Filled.DateRange,
+        ),
+        NavigationItem(
+            title = "Summary",
+            selectedIcon = Icons.Filled.Email,
+            unselectedIcon = Icons.Filled.Email,
         ),
         NavigationItem(
             title = "Daftar Product",

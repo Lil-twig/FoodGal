@@ -1,4 +1,4 @@
-package com.example.foodgal.ui.pos
+package com.example.foodgal.models
 
 data class Product(
     val id: String = "",

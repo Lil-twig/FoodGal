@@ -1,6 +1,7 @@
 package com.example.foodgal.data
 
-import com.example.foodgal.ui.pos.Product
+import android.util.Log
+import com.example.foodgal.models.Product
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.channels.awaitClose
@@ -12,15 +13,22 @@ class ProductRepository {
     private val db = Firebase.firestore
 
     fun getProductsFlow(): Flow<List<Product>> = callbackFlow {
+
         val subscription = db.collection("products")
+
             .addSnapshotListener { snapshot, error ->
                 if (error != null) {
                     close(error)
                     return@addSnapshotListener
                 }
                 if (snapshot != null) {
-                    val products = snapshot.toObjects(Product::class.java)
+
+                    val products = snapshot.documents.mapNotNull { doc ->
+                        doc.toObject(Product::class.java)?.copy(id = doc.id)
+                    }
                     trySend(products)
+                    Log.d("ProductRepository", "Data Product: ${products}")
+
                 }
             }
         awaitClose { subscription.remove() }

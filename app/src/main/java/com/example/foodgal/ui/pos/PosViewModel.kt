@@ -1,20 +1,31 @@
 package com.example.foodgal.ui.pos
 
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.foodgal.data.ProductRepository
+import com.example.foodgal.models.Product
+import com.example.foodgal.models.Transaction
+import com.example.foodgal.models.TransactionItem
+import com.google.firebase.Firebase
+import com.google.firebase.Timestamp
+import com.google.firebase.auth.auth
+import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
 
 class PosViewModel : ViewModel() {
     private val repository = ProductRepository()
+    private val db = Firebase.firestore
+    private val auth = Firebase.auth
 
     private val _allProducts = MutableStateFlow<List<Product>>(emptyList())
+    val allProducts: StateFlow<List<Product>> = _allProducts.asStateFlow()
     
     private val _selectedCategory = MutableStateFlow("All")
     val selectedCategory: StateFlow<String> = _selectedCategory.asStateFlow()
@@ -27,13 +38,11 @@ class PosViewModel : ViewModel() {
 
     private val _filteredProducts = MutableStateFlow<List<Product>>(emptyList())
     val products: StateFlow<List<Product>> = _filteredProducts.asStateFlow()
-    val allProducts: StateFlow<List<Product>> = _allProducts.asStateFlow()
 
     // CART STATE
     private val _cartItems = MutableStateFlow<Map<String, Int>>(emptyMap()) // productId to quantity
     val cartItems: StateFlow<Map<String, Int>> = _cartItems.asStateFlow()
 
-    // Let's use simpler state for cart summary
     private val _totalItems = MutableStateFlow(0)
     val totalItems: StateFlow<Int> = _totalItems.asStateFlow()
 
@@ -47,17 +56,12 @@ class PosViewModel : ViewModel() {
     fun fetchProducts() {
         _isLoading.value = true
         viewModelScope.launch {
-
             repository.getProductsFlow().collect { products ->
                 _allProducts.value = products
                 updateFilteredList()
                 _isLoading.value = false
-
             }
         }
-
-
-
     }
 
     fun selectCategory(category: String) {
@@ -90,7 +94,6 @@ class PosViewModel : ViewModel() {
         currentCart[product.id] = count + 1
         _cartItems.value = currentCart
         
-        // Update summary
         _totalItems.value = currentCart.values.sum()
         _totalPrice.value += product.price.toInt()
     }
@@ -116,8 +119,66 @@ class PosViewModel : ViewModel() {
         _totalItems.value = 0
         _totalPrice.value = 0
     }
-    
-    fun isProductInCart(productId: String): Boolean {
-        return _cartItems.value.containsKey(productId)
+
+    // LOGIC TO SAVE TRANSACTION TO FIREBASE
+    fun completeTransaction(onSuccess: () -> Unit, onFailure: (String) -> Unit) {
+        val currentUser = auth.currentUser
+        if (currentUser == null) {
+            onFailure("Sesi berakhir, silakan login kembali")
+            return
+        }
+
+        if (_cartItems.value.isEmpty()) {
+            onFailure("Keranjang masih kosong")
+            return
+        }
+
+        _isLoading.value = true
+
+        viewModelScope.launch {
+            try {
+                val timestamp = System.currentTimeMillis()
+                // GANTI AWALAN DI SINI: dari "TRX-" menjadi "Struk Pembelian "
+                val orderId = "TRX-$timestamp"
+                
+                val transactionItems = _cartItems.value.mapNotNull { (productId, quantity) ->
+                    val product = _allProducts.value.find { it.id == productId }
+                    product?.let {
+                        TransactionItem(
+                            productId = it.id,
+                            name = it.name,
+                            price = it.price,
+                            quantity = quantity,
+                            subtotal = it.price * quantity
+                        )
+                    }
+                }
+
+                val transaction = Transaction(
+                    orderId = orderId,
+                    cashierId = currentUser.uid,
+                    items = transactionItems,
+                    totalAmount = _totalPrice.value.toDouble(),
+                    paymentMethod = "Cash", 
+                    paymentStatus = "success",
+                    createdAt = Timestamp.now(),
+                    updatedAt = Timestamp.now()
+                )
+
+                // Simpan ke koleksi "transactions"
+                db.collection("transactions")
+                    .document(orderId)
+                    .set(transaction)
+                    .await()
+
+                Log.d("PosViewModel", "Transaksi Berhasil: $orderId")
+                onSuccess()
+            } catch (e: Exception) {
+                Log.e("PosViewModel", "Gagal menyimpan transaksi", e)
+                onFailure("Gagal memproses transaksi: ${e.localizedMessage}")
+            } finally {
+                _isLoading.value = false
+            }
+        }
     }
 }
