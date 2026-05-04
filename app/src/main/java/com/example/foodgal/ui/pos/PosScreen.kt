@@ -142,10 +142,14 @@ fun PosScreen(
 
                 // PRODUCT LIST FROM FIREBASE
                 items(products) { product ->
+
+                    val quantity = cartItems[product.id] ?:0
+
                     ProductCard(
                         name = product.name,
                         price = product.price.toInt(),
-                        isSelected = cartItems.containsKey(product.id),
+                        isSelected = quantity > 0,
+                        quantity = quantity,
                         onClick = { viewModel.addToCart(product) }
                     )
                 }
@@ -232,4 +236,6 @@ fun CategoryCard(
             color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Black
         )
     }
+
+
 }
