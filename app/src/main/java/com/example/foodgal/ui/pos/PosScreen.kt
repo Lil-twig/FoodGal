@@ -146,6 +146,7 @@ fun PosScreen(
                     val quantity = cartItems[product.id] ?:0
 
                     ProductCard(
+                        product = product,
                         name = product.name,
                         price = product.price.toInt(),
                         isSelected = quantity > 0,

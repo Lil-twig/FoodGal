@@ -1,3 +1,4 @@
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -64,7 +65,9 @@ dependencies {
     // Firebase
     implementation(platform("com.google.firebase:firebase-bom:34.11.0"))
     implementation("com.google.firebase:firebase-firestore")
-    implementation("com.google.firebase:firebase-auth") // Tambahkan ini
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-storage") // <-- Tambahkan ini
 
-
+    // Image Loading Library
+    implementation("io.coil-kt:coil-compose:2.6.0") // <-- Tambahkan ini
 }
