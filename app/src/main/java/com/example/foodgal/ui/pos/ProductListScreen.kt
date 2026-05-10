@@ -1,5 +1,8 @@
 package com.example.foodgal.ui.pos
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -55,15 +58,21 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.example.foodgal.models.Product
 import kotlinx.coroutines.launch
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -71,15 +80,15 @@ fun ProductListScreen(
     viewModel: ProductViewModel = viewModel(),
     onMenuClick: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val selectedCategory by viewModel.selectedCategory.collectAsState()
-    // Menggunakan filteredProducts agar sorting berfungsi
-    val products by viewModel.filteredProducts.collectAsState() 
+    val products by viewModel.filteredProducts.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val categories by viewModel.categories.collectAsState()
-    
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    
+
     var showAddDialog by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -109,7 +118,6 @@ fun ProductListScreen(
                     .fillMaxSize()
                     .padding(innerPadding)
             ) {
-                // Implementasi Kategori Satu per Satu
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -168,17 +176,19 @@ fun ProductListScreen(
                 }
             }
 
+            // ADD PRODUCT DIALOG
             if (showAddDialog) {
                 AddProductDialog(
                     onDismiss = { showAddDialog = false },
-                    onSave = { name, price, category ->
-                        viewModel.addProduct(name, price, category)
+                    onSave = { name, price, category, imageUri ->
+                        // pass context and imageUri to viewModel
+                        viewModel.addProduct(context, name, price, category, imageUri)
                         showAddDialog = false
                         scope.launch {
                             snackbarHostState.showSnackbar("Menu baru di Tambah")
                         }
                     },
-                    categories = categories.filter { it != "Semua" } // Jangan tampilkan "Semua" di dialog tambah
+                    categories = categories.filter { it != "Semua" }
                 )
             }
         }
@@ -192,7 +202,7 @@ fun ProductListScreen(
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
-                        onClick = {} // Intercept clicks
+                        onClick = {}
                     ),
                 contentAlignment = Alignment.Center
             ) {
@@ -214,13 +224,19 @@ fun ProductListScreen(
 @Composable
 fun AddProductDialog(
     onDismiss: () -> Unit,
-    onSave: (String, Double, String) -> Unit,
+    onSave: (String, Double, String, Uri?) -> Unit, // added Uri? param
     categories: List<String>
 ) {
     var name by remember { mutableStateOf("") }
     var price by remember { mutableStateOf("") }
     var category by remember { mutableStateOf(categories.firstOrNull() ?: "") }
     var expanded by remember { mutableStateOf(false) }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) } // NEW
+
+    // Image picker launcher
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri -> selectedImageUri = uri }
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
@@ -288,18 +304,48 @@ fun AddProductDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
 
-                // Image Placeholder
+                // Image Picker — tappable, shows preview after picked
                 Column {
                     Text(text = "Gambar :", style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.height(8.dp))
                     Box(
                         modifier = Modifier
-                            .size(120.dp, 80.dp)
+                            .fillMaxWidth()
+                            .height(120.dp)
+                            .clip(RoundedCornerShape(8.dp))
                             .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
-                            .background(Color.LightGray.copy(alpha = 0.2f), RoundedCornerShape(8.dp)),
+                            .background(Color.LightGray.copy(alpha = 0.2f))
+                            .clickable { imagePickerLauncher.launch("image/*") },
                         contentAlignment = Alignment.Center
                     ) {
-                        // Icon placeholder
+                        if (selectedImageUri != null) {
+                            // Show selected image preview
+                            AsyncImage(
+                                model = selectedImageUri,
+                                contentDescription = "Preview Gambar",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            // Show placeholder prompt
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Menu,
+                                    contentDescription = null,
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(32.dp)
+                                )
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = "Tap untuk pilih gambar",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -309,7 +355,7 @@ fun AddProductDialog(
                 ) {
                     Button(
                         onClick = onDismiss,
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B0000)), // Dark Red
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B0000)),
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.weight(1f)
                     ) {
@@ -318,10 +364,10 @@ fun AddProductDialog(
                     Button(
                         onClick = {
                             if (name.isNotEmpty() && price.isNotEmpty()) {
-                                onSave(name, price.toDoubleOrNull() ?: 0.0, category)
+                                onSave(name, price.toDoubleOrNull() ?: 0.0, category, selectedImageUri)
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF006400)), // Dark Green
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF006400)),
                         shape = RoundedCornerShape(8.dp),
                         modifier = Modifier.weight(1f)
                     ) {
@@ -338,6 +384,8 @@ fun ProductItemCard(
     product: Product,
     onDelete: () -> Unit
 ) {
+    val context = LocalContext.current
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(4.dp),
@@ -345,38 +393,74 @@ fun ProductItemCard(
             containerColor = MaterialTheme.colorScheme.surface
         )
     ) {
-        Column(
-            modifier = Modifier.padding(12.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Top
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = product.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        maxLines = 1
-                    )
-                    Text(
-                        text = "Rp ${String.format("%,.0f", product.price)}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Text(
-                        text = product.category,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray
+        Column {
+            // Product image — show if imagePath exists
+            if (product.imagePath.isNotEmpty()) {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(File(product.imagePath))
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = product.name,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
+                        .clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                    contentScale = ContentScale.Crop
+                )
+            } else {
+                // Gray placeholder if no image
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(100.dp)
+                        .background(
+                            Color.LightGray.copy(alpha = 0.4f),
+                            RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = null,
+                        tint = Color.Gray,
+                        modifier = Modifier.size(32.dp)
                     )
                 }
-                IconButton(onClick = onDelete) {
-                    Icon(
-                        imageVector = Icons.Default.Delete,
-                        contentDescription = "Hapus",
-                        tint = MaterialTheme.colorScheme.error
-                    )
+            }
+
+            // Product info
+            Column(modifier = Modifier.padding(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = product.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = "Rp ${String.format("%,.0f", product.price)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = product.category,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.Gray
+                        )
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Hapus",
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
         }

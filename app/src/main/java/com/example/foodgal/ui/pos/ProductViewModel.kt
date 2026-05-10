@@ -1,5 +1,7 @@
 package com.example.foodgal.ui.pos
 
+import android.content.Context
+import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -63,41 +65,44 @@ class ProductViewModel : ViewModel() {
         _selectedCategory.value = category
     }
 
-    fun addProduct(name: String, price: Double, category: String) {
+    fun addProduct(
+        context: Context,
+        name: String,
+        price: Double,
+        category: String,
+        imageUri: Uri? = null
+    ) {
         _isLoading.value = true
-        val docRef = db.collection("products").document()
-        val newProduct = Product(
-            id = docRef.id,
-            name = name,
-            price = price,
-            category = category
-        )
-
-        docRef.set(newProduct)
-            .addOnSuccessListener {
-                Log.d("ProductViewModel", "Product added: $name")
-                // getProducts() tidak perlu dipanggil manual karena sudah ada SnapshotListener
-                _isLoading.value = false
-            }
-            .addOnFailureListener { e ->
-                Log.e("ProductViewModel", "Error adding document", e)
-                _isLoading.value = false
-            }
+        viewModelScope.launch {
+            repository.addProductWithImage(context, name, price, category, imageUri)
+                .fold(
+                    onSuccess = { _isLoading.value = false },
+                    onFailure = { e ->
+                        Log.e("ProductViewModel", "Error adding product", e)
+                        _isLoading.value = false
+                    }
+                )
+        }
     }
 
     fun deleteProduct(productId: String) {
         _isLoading.value = true
-        db.collection("products").document(productId)
-            .delete()
-            .addOnSuccessListener {
-                Log.d("ProductViewModel", "Product deleted: $productId")
-                // getProducts() tidak perlu dipanggil manual karena sudah ada SnapshotListener
-                _isLoading.value = false
-            }
-            .addOnFailureListener { e ->
-                Log.e("ProductViewModel", "Error deleting document", e)
-                _isLoading.value = false
-            }
+       val product = _products.value.find { it.id == productId }
+        viewModelScope.launch {
+
+            repository.deleteProduct(productId, product?.imagePath ?: "")
+                .fold(
+                    onSuccess = {
+                        _isLoading.value = false
+                    },
+                    onFailure = { e ->
+
+                        Log.e("ProductViewModel", "Error deleting product", e)
+                        _isLoading.value = false
+                    }
+                )
+
+        }
     }
 
     override fun onCleared() {
