@@ -35,17 +35,18 @@ class ProductViewModel : ViewModel() {
     private val repository = ProductRepository()
 
     // Logika Filter: Menggabungkan list produk dan kategori yang dipilih
-    val filteredProducts: StateFlow<List<Product>> = combine(_products, _selectedCategory) { products, category ->
-        if (category == "Semua") {
-            products
-        } else {
-            products.filter { it.category.equals(category, ignoreCase = true) }
-        }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = emptyList()
-    )
+    val filteredProducts: StateFlow<List<Product>> =
+        combine(_products, _selectedCategory) { products, category ->
+            if (category == "Semua") {
+                products
+            } else {
+                products.filter { it.category.equals(category, ignoreCase = true) }
+            }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     init {
         getProducts()
@@ -85,9 +86,42 @@ class ProductViewModel : ViewModel() {
         }
     }
 
+    fun editProduct(
+        context: Context,
+        productId: String,
+        name: String,
+        price: Double,
+        category: String,
+        newImageUri: Uri? = null,
+        oldImagePath: String = ""
+    ) {
+        _isLoading.value = true
+        viewModelScope.launch {
+            repository.updateProduct(
+                context,
+                productId,
+                name,
+                price,
+                category,
+                newImageUri,
+                oldImagePath
+            )
+                .fold(
+                    onSuccess = {
+                        _isLoading.value = false
+                        getProducts()
+                    },
+                    onFailure = { e ->
+                        Log.e("ProductViewModel", "Error editing product", e)
+                        _isLoading.value = false
+                    }
+                )
+        }
+    }
+
     fun deleteProduct(productId: String) {
         _isLoading.value = true
-       val product = _products.value.find { it.id == productId }
+        val product = _products.value.find { it.id == productId }
         viewModelScope.launch {
 
             repository.deleteProduct(productId, product?.imagePath ?: "")

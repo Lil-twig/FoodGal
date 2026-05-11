@@ -1,4 +1,4 @@
-package com.example.foodgal.ui.pos
+package com.example.foodgal.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.foodgal.models.Transaction
 import com.example.foodgal.ui.component.formatToRupiah
+import com.example.foodgal.ui.pos.HistoryViewModel
 import java.text.SimpleDateFormat
 import java.util.Locale
 

@@ -104,15 +104,15 @@ fun ProductCard(
                     color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Unspecified
                 )
 
-                if (isSelected) {
-                    Text(
-                        text = "Selected",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(top = 4.dp)
-                    )
-                }
+//                if (isSelected) {
+//                    Text(
+//                        text = "Selected",
+//                        style = MaterialTheme.typography.labelSmall,
+//                        color = MaterialTheme.colorScheme.primary,
+//                        fontWeight = FontWeight.Bold,
+//                        modifier = Modifier.padding(top = 4.dp)
+//                    )
+//                }
             }
         }
 

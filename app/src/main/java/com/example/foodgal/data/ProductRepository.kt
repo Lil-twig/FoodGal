@@ -93,6 +93,46 @@ class ProductRepository {
         }
     }
 
+    // Update existing product: optionally replace image
+    suspend fun updateProduct(
+        context: Context,
+        productId: String,
+        name: String,
+        price: Double,
+        category: String,
+        newImageUri: Uri?,
+        oldImagePath: String
+    ): Result<Unit> {
+        return try {
+            val imagePath = if (newImageUri != null) {
+                // Delete old image first, then save new one
+                if (oldImagePath.isNotEmpty()) ImageHelper.deleteImage(oldImagePath)
+                ImageHelper.saveImageToInternalStorage(
+                    context = context,
+                    uri = newImageUri,
+                    fileName = productId
+                ) ?: ""
+            } else {
+                oldImagePath // keep existing image
+            }
+
+            val updates = mapOf(
+                "name" to name,
+                "price" to price,
+                "category" to category,
+                "imagePath" to imagePath
+            )
+
+            db.collection("products").document(productId).update(updates).await()
+            Log.d("ProductRepository", "Product updated: $productId")
+            Result.success(Unit)
+
+        } catch (e: Exception) {
+            Log.e("ProductRepository", "Error updating product", e)
+            Result.failure(e)
+        }
+    }
+
     // NEW: delete image from local storage when product is deleted
     suspend fun deleteProduct(productId: String, imagePath: String): Result<Unit> {
         return try {

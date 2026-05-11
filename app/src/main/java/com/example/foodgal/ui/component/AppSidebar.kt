@@ -58,11 +58,6 @@ fun AppSidebar(
             selectedIcon = Icons.Filled.Person,
             unselectedIcon = Icons.Filled.Person,
         ),
-        NavigationItem(
-            title = "Settings",
-            selectedIcon = Icons.Filled.Settings,
-            unselectedIcon = Icons.Filled.Settings,
-        )
     )
 
     ModalDrawerSheet(

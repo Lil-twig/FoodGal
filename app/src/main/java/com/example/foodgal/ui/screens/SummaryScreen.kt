@@ -1,4 +1,4 @@
-package com.example.foodgal.ui.pos
+package com.example.foodgal.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -14,7 +14,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.foodgal.models.SummaryViewModel
 import com.example.foodgal.ui.component.formatToRupiah
 
 @OptIn(ExperimentalMaterial3Api::class)

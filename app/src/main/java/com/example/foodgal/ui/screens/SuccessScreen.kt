@@ -1,4 +1,4 @@
-package com.example.foodgal.ui.pos
+package com.example.foodgal.ui.screens
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween

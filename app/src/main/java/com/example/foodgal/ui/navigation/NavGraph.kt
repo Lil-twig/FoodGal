@@ -12,10 +12,18 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.foodgal.models.Transaction
 import com.example.foodgal.ui.auth.AuthViewModel
-import com.example.foodgal.ui.auth.LoginScreen
+import com.example.foodgal.ui.screens.LoginScreen
 import com.example.foodgal.ui.auth.ProfileScreen
 import com.example.foodgal.ui.component.AppSidebar
 import com.example.foodgal.ui.pos.*
+import com.example.foodgal.ui.screens.CheckoutScreen
+import com.example.foodgal.ui.screens.HistoryScreen
+import com.example.foodgal.ui.screens.PosScreen
+import com.example.foodgal.ui.screens.ProductListScreen
+import com.example.foodgal.ui.screens.ReceiptScreen
+import com.example.foodgal.ui.screens.SuccessScreen
+import com.example.foodgal.ui.screens.SummaryScreen
+import com.example.foodgal.ui.screens.TransactionDetailScreen
 import kotlinx.coroutines.launch
 
 sealed class Screen(val route: String, val title: String) {

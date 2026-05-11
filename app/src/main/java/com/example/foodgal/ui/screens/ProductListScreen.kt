@@ -1,4 +1,4 @@
-package com.example.foodgal.ui.pos
+package com.example.foodgal.ui.screens
 
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -27,6 +27,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -64,6 +65,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -71,6 +73,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.foodgal.models.Product
+import com.example.foodgal.ui.pos.ProductViewModel
 import kotlinx.coroutines.launch
 import java.io.File
 
@@ -90,6 +93,8 @@ fun ProductListScreen(
     val scope = rememberCoroutineScope()
 
     var showAddDialog by remember { mutableStateOf(false) }
+    var productToEdit by remember { mutableStateOf<Product?>(null) }
+    var productToDelete by remember { mutableStateOf<Product?>(null) }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
@@ -156,7 +161,7 @@ fun ProductListScreen(
                 }
 
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(2),
+                    columns = GridCells.Fixed(1),
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(16.dp),
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -165,12 +170,8 @@ fun ProductListScreen(
                     items(products, key = { it.id }) { product ->
                         ProductItemCard(
                             product = product,
-                            onDelete = {
-                                viewModel.deleteProduct(product.id)
-                                scope.launch {
-                                    snackbarHostState.showSnackbar("Menu telah dihapus")
-                                }
-                            }
+                            onEdit = { productToEdit = product },
+                            onDelete = { productToDelete = product }
                         )
                     }
                 }
@@ -191,9 +192,46 @@ fun ProductListScreen(
                     categories = categories.filter { it != "Semua" }
                 )
             }
+
+            // EDIT PRODUCT DIALOG
+            productToEdit?.let { product ->
+                EditProductDialog(
+                    product = product,
+                    categories = categories.filter { it != "Semua" },
+                    onDismiss = { productToEdit = null },
+                    onSave = { name, price, category, newImageUri ->
+                        viewModel.editProduct(
+                            context = context,
+                            productId = product.id,
+                            name = name,
+                            price = price,
+                            category = category,
+                            newImageUri = newImageUri,
+                            oldImagePath = product.imagePath
+                        )
+                        productToEdit = null
+                        scope.launch {
+                            snackbarHostState.showSnackbar("Menu berhasil diperbarui")
+                        }
+                    }
+                )
+            }
+        }
+        // DELETE CONFIRMATION DIALOG
+        productToDelete?.let { product ->
+            DeleteConfirmationDialog(
+                productName = product.name,
+                onDismiss = { productToDelete = null },
+                onConfirm = {
+                    viewModel.deleteProduct(product.id)
+                    productToDelete = null
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Menu telah dihapus")
+                    }
+                }
+            )
         }
 
-        // LOADING OVERLAY
         if (isLoading) {
             Box(
                 modifier = Modifier
@@ -382,6 +420,7 @@ fun AddProductDialog(
 @Composable
 fun ProductItemCard(
     product: Product,
+    onEdit: () -> Unit,
     onDelete: () -> Unit
 ) {
     val context = LocalContext.current
@@ -454,12 +493,256 @@ fun ProductItemCard(
                             color = Color.Gray
                         )
                     }
-                    IconButton(onClick = onDelete) {
-                        Icon(
-                            imageVector = Icons.Default.Delete,
-                            contentDescription = "Hapus",
-                            tint = MaterialTheme.colorScheme.error
-                        )
+                    Row {
+                        IconButton(onClick = onEdit) {
+                            Icon(
+                                imageVector = Icons.Default.Edit,
+                                contentDescription = "Edit",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                        IconButton(onClick = onDelete) {
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = "Hapus",
+                                tint = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DeleteConfirmationDialog(
+    productName: String,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.size(48.dp)
+                )
+                Text(
+                    text = "Hapus Menu?",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "\"$productName\" akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center
+                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Batal", color = MaterialTheme.colorScheme.onSurface)
+                    }
+                    Button(
+                        onClick = onConfirm,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Hapus", color = Color.White)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditProductDialog(
+    product: Product,
+    categories: List<String>,
+    onDismiss: () -> Unit,
+    onSave: (String, Double, String, Uri?) -> Unit
+) {
+    var name by remember { mutableStateOf(product.name) }
+    var price by remember { mutableStateOf(product.price.toString()) }
+    var category by remember { mutableStateOf(product.category) }
+    var expanded by remember { mutableStateOf(false) }
+    var newImageUri by remember { mutableStateOf<Uri?>(null) }
+
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri -> newImageUri = uri }
+
+    val context = LocalContext.current
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(16.dp),
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Column(
+                modifier = Modifier
+                    .padding(24.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = "Edit Menu",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+
+                // Category Dropdown
+                ExposedDropdownMenuBox(
+                    expanded = expanded,
+                    onExpandedChange = { expanded = !expanded }
+                ) {
+                    OutlinedTextField(
+                        value = category,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Category") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                        modifier = Modifier
+                            .menuAnchor()
+                            .fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expanded,
+                        onDismissRequest = { expanded = false }
+                    ) {
+                        categories.forEach { option ->
+                            DropdownMenuItem(
+                                text = { Text(option) },
+                                onClick = {
+                                    category = option
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                // Name Input
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Nama product :") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Price Input
+                OutlinedTextField(
+                    value = price,
+                    onValueChange = { price = it },
+                    label = { Text("Price product :") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+
+                // Image Picker — shows new selection or existing image
+                Column {
+                    Text(text = "Gambar :", style = MaterialTheme.typography.bodyMedium)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
+                            .background(Color.LightGray.copy(alpha = 0.2f))
+                            .clickable { imagePickerLauncher.launch("image/*") },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        when {
+                            newImageUri != null -> {
+                                AsyncImage(
+                                    model = newImageUri,
+                                    contentDescription = "Preview Gambar Baru",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                            product.imagePath.isNotEmpty() -> {
+                                AsyncImage(
+                                    model = ImageRequest.Builder(context)
+                                        .data(File(product.imagePath))
+                                        .crossfade(true)
+                                        .build(),
+                                    contentDescription = "Gambar Saat Ini",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                            else -> {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Menu,
+                                        contentDescription = null,
+                                        tint = Color.Gray,
+                                        modifier = Modifier.size(32.dp)
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "Tap untuk pilih gambar",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = Color.Gray
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                ) {
+                    Button(
+                        onClick = onDismiss,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B0000)),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Cancel", color = Color.White)
+                    }
+                    Button(
+                        onClick = {
+                            if (name.isNotEmpty() && price.isNotEmpty()) {
+                                onSave(name, price.toDoubleOrNull() ?: 0.0, category, newImageUri)
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF006400)),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text("Simpan", color = Color.White)
                     }
                 }
             }

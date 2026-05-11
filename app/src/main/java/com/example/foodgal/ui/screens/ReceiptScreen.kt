@@ -1,4 +1,4 @@
-package com.example.foodgal.ui.pos
+package com.example.foodgal.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,8 +14,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.foodgal.ui.component.formatToRupiah
-import java.text.SimpleDateFormat
-import java.util.*
+import com.example.foodgal.ui.pos.PosViewModel
 
 @Composable
 fun ReceiptScreen(viewModel: PosViewModel, onDoneClick: () -> Unit) {

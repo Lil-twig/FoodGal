@@ -1,4 +1,4 @@
-package com.example.foodgal.ui.pos
+package com.example.foodgal.ui.screens
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -46,6 +47,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.foodgal.R
 import com.example.foodgal.ui.component.CartBottomBar
 import com.example.foodgal.ui.component.ProductCard
+import com.example.foodgal.ui.pos.PosViewModel
 
 @Composable
 fun PosScreen(
@@ -226,7 +228,7 @@ fun CategoryCard(
             Image(
                 painter = painterResource(image),
                 contentDescription = name,
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.padding(16.dp).size(48.dp)
             )
         }
 

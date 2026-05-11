@@ -1,4 +1,4 @@
-package com.example.foodgal.ui.pos
+package com.example.foodgal.ui.screens
 
 import android.widget.Toast
 import androidx.compose.foundation.border
@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.foodgal.R
 import com.example.foodgal.ui.component.formatToRupiah
+import com.example.foodgal.ui.pos.PosViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
